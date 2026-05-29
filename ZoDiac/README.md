@@ -1,25 +1,92 @@
 # Attack-Resilient Image Watermarking Using Stable Diffusion (NeurIPS2024)
 
-This is the website for our paper "Attack-Resilient Image Watermarking Using Stable Diffusion". 
+This is the website for reproduce results of paper "Attack-Resilient Image Watermarking Using Stable Diffusion". 
 The arXiv version can be found [here](https://arxiv.org/pdf/2401.04247.pdf).
 
-### Abstract
-Watermarking images is critical for tracking image provenance and proving ownership. With the advent of generative models, such as stable diffusion, that can create fake but realistic images, watermarking has become particularly important to make human-created images reliably identifiable. Unfortunately, the very same stable diffusion technology can remove watermarks injected using existing methods. To address this problem, we present ZoDiac, which uses a pre-trained stable diffusion model to inject a watermark into the trainable latent space, resulting in watermarks that can be reliably detected in the latent vector even when attacked. We evaluate ZoDiac on three benchmarks, MS-COCO, DiffusionDB, and WikiArt, and find that ZoDiac is robust against state-of-the-art watermark attacks, with a watermark detection rate above 98% and a false positive rate below 6.4%, outperforming state-of-the-art watermarking methods. We hypothesize that the reciprocating denoising process in diffusion models may inherently enhance the robustness of the watermark when faced with strong attacks and validate the hypothesis. Our research demonstrates that stable diffusion is a promising approach to robust watermarking, able to withstand even stable-diffusion–based attack methods. 
-
-
-### Cite
-Welcome to cite our work if you find it is helpful to your research.
-```
-@misc{zhang2024ZoDiac,
-      title={Attack-Resilient Image Watermarking Using Stable Diffusion}, 
-      author={Lijun Zhang and Xiao Liu and Antoni Viros Martin and Cindy Xiong Bearfield and Yuriy Brun and Hui Guan},
-      year={2024},
-      eprint={2401.04247},
-      archivePrefix={arXiv},
-      primaryClass={cs.CV}
-}
-```
-
 # How To Use
-Prepare the conda environment by running ```conda env create -f environment.yml```.
-Then please refer to the ```Example.ipynb```. Each section can be executed seperately.
+
+## Environment Setup
+
+Prepare the conda environment by running:
+```bash
+conda env create -f environment.yml
+conda activate my-zodiac
+```
+
+Prepare the pytorch compatible cuda 12.9 by running:
+```bash
+pip install --upgrade --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu129
+```
+
+## Configuration
+
+Edit `example/config/config.yaml` to set your options:
+
+| Parameter | Description |
+|-----------|-------------|
+| `model_id` | HuggingFace model ID for Stable Diffusion (default: `Manojb/stable-diffusion-2-1-base`) |
+| `save_img` | Output directory for watermarked images |
+| `w_type` | Watermark type: `single` or `multi` |
+| `w_channel` / `w_radius` / `w_seed` | Watermark pattern parameters |
+| `iters` | Number of training iterations (default: 100) |
+| `save_iters` | Iteration checkpoints to save (e.g., `[100]`) |
+| `loss_weights` | Weights for `[L2, Watson-VGG, SSIM, WM-L1]` losses |
+| `ssim_threshold` | SSIM threshold for adaptive enhancement (default: 0.92) |
+
+## Notebook Interface
+
+Refer to `Example.ipynb` for an interactive walkthrough. Each section can be executed separately.
+
+## Command-Line Interface (`demo_test.py`)
+
+Place your input image in `example/input/` and run the pipeline steps using the `--op` flag:
+
+```bash
+# Step 1: Embed watermark (100 training iterations → saves pepper_100.png)
+python demo_test.py --op 1
+
+# Step 2: Adaptive enhancement (adjusts blending to meet SSIM threshold)
+python demo_test.py --op 2
+
+# Step 3: Apply individual attacks to the watermarked image
+python demo_test.py --op 3
+
+# Step 4: Apply combined attack sequences (w/ and w/o rotation)
+python demo_test.py --op 4
+
+# Step 5: Detect watermark in original and attacked images
+python demo_test.py --op 5
+```
+
+**Typical workflow:** run steps 1 → 2 → 3/4 → 5 in order.
+
+### Supported Attackers
+
+| Attacker | Description |
+|----------|-------------|
+| `diff_attacker_60` | Stable diffusion regeneration (noise step 60) |
+| `cheng2020-anchor_3` | VAE compression (Cheng2020, quality 3) |
+| `bmshj2018-factorized_3` | VAE compression (BMSHJ2018, quality 3) |
+| `jpeg_attacker_50` | JPEG compression (quality 50) |
+| `rotate_90` | 90° rotation |
+| `brightness_0.5` | Brightness reduction |
+| `contrast_0.5` | Contrast reduction |
+| `Gaussian_noise` | Gaussian noise (std=0.05) |
+| `Gaussian_blur` | Gaussian blur (kernel=5, σ=1) |
+| `bm3d` | BM3D denoising |
+
+### Output Structure
+
+```
+example/output/
+├── pepper_100.png                  # watermarked image after 100 iters
+├── pepper_100_SSIM0.92.png         # after adaptive enhancement
+├── diff_attacker_60/
+│   └── pepper_100_SSIM0.92.png
+├── jpeg_attacker_50/
+│   └── pepper_100_SSIM0.92.png
+├── all/                            # combined attack (w/ rotation)
+│   └── pepper_100_SSIM0.92.png
+└── all_norot/                      # combined attack (w/o rotation)
+    └── pepper_100_SSIM0.92.png
+```

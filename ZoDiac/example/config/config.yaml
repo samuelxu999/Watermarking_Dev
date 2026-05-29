@@ -3,7 +3,7 @@ method: 'ZoDiac'
 save_img: './example/output/' 
 
 # for stable diffusion
-model_id: 'stabilityai/stable-diffusion-2-1-base'
+model_id: 'Manojb/stable-diffusion-2-1-base'
 gen_seed: 0  # the seed for generating gt image; no use for watermarking existing imgs
 empty_prompt: True # whether to use the caption of the image
 
