@@ -47,7 +47,8 @@ def Pipeline_init(device, cfgs):
 
 def Load_image(device, cfgs):
     logging.info(f'===== Load Image Tensor =====')
-    imagename = 'pepper.tiff'
+    # imagename = 'pepper.tiff'
+    imagename = 'hummingbird.png'
     gt_img_tensor = get_img_tensor(f'./example/input/{imagename}', device)
     wm_path = cfgs['save_img']
     return gt_img_tensor, wm_path, imagename
@@ -211,29 +212,14 @@ def Attack_WM_Combine(device, cfgs, wm_path, imagename):
             }
             multi_name = 'all_norot'
         
-    os.makedirs(os.path.join(wm_path, multi_name), exist_ok=True)
-    att_img_path = os.path.join(wm_path, multi_name, os.path.basename(post_img))
-    for i, (attacker_name, attacker) in enumerate(attackers.items()):
-        print(f'Attacking with {attacker_name}')
-        if i == 0:
-            attackers[attacker_name].attack([post_img], [att_img_path], multi=True)
-        else:
-            attackers[attacker_name].attack([att_img_path], [att_img_path], multi=True)
-
-def main(op=0):
-    device, cfgs = load_config()
-    wm_pipe, pipe = Pipeline_init(device, cfgs)
-    gt_img_tensor, wm_path, imagename = Load_image(device, cfgs)
-    if op == 1:
-        loss_lst = Image_Watermarking(device, cfgs, wm_pipe, pipe, gt_img_tensor, wm_path, imagename)
-    elif op == 2:
-        Adaptive_Enhancement(device, cfgs, wm_pipe, pipe, gt_img_tensor, wm_path, imagename)
-    elif op == 3:
-        Attack_WM_Single(device, cfgs, wm_path, imagename)
-    elif op == 4:
-        Attack_WM_Combine(device, cfgs, wm_path, imagename)
-    elif op == 5:
-        Detect_Watermark(device, cfgs, wm_pipe, pipe, wm_path, imagename)
+        os.makedirs(os.path.join(wm_path, multi_name), exist_ok=True)
+        att_img_path = os.path.join(wm_path, multi_name, os.path.basename(post_img))
+        for i, (attacker_name, attacker) in enumerate(attackers.items()):
+            print(f'Attacking with {attacker_name}')
+            if i == 0:
+                attackers[attacker_name].attack([post_img], [att_img_path], multi=True)
+            else:
+                attackers[attacker_name].attack([att_img_path], [att_img_path], multi=True)
 
 def Detect_Watermark(device, cfgs, wm_pipe, pipe, wm_path, imagename):
     ssim_threshold = cfgs['ssim_threshold']
@@ -260,9 +246,24 @@ def Detect_Watermark(device, cfgs, wm_pipe, pipe, wm_path, imagename):
         det_prob = 1 - watermark_prob(os.path.join(wm_path, attacker_name, os.path.basename(post_img)), pipe, wm_pipe, text_embeddings)
         logging.info(f'Watermark Presence Prob.: {det_prob}')
 
+def run_case(op=0):
+    device, cfgs = load_config()
+    wm_pipe, pipe = Pipeline_init(device, cfgs)
+    gt_img_tensor, wm_path, imagename = Load_image(device, cfgs)
+    if op == 1:
+        loss_lst = Image_Watermarking(device, cfgs, wm_pipe, pipe, gt_img_tensor, wm_path, imagename)
+    elif op == 2:
+        Adaptive_Enhancement(device, cfgs, wm_pipe, pipe, gt_img_tensor, wm_path, imagename)
+    elif op == 3:
+        Attack_WM_Single(device, cfgs, wm_path, imagename)
+    elif op == 4:
+        Attack_WM_Combine(device, cfgs, wm_path, imagename)
+    elif op == 5:
+        Detect_Watermark(device, cfgs, wm_pipe, pipe, wm_path, imagename)
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--op', type=int, default=0, help='0: init process only, 1: Image_Watermarking, 2: Adaptive_Enhancement, 3: Attack_WM_Single, 4: Attack_WM_Combine, 5: Detect_Watermark')
     args = parser.parse_args()
-    main(op=args.op)
+    run_case(op=args.op)
 
